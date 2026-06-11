@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Violet — Sua Assistente</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #0f0f1a;
+    --surface2: #151525;
+    --violet: #7c3aed;
+    --violet-light: #a855f7;
+    --violet-glow: #c084fc;
+    --violet-dim: #4c1d95;
+    --cyan: #06b6d4;
+    --text: #e2d9f3;
+    --text-dim: #7c6f9a;
+    --border: #2d1f4e;
+    --success: #10b981;
+    --error: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .token-counter {
+    font-size: 11px;
+    font-family: 'Orbitron', monospace;
+    color: var(--violet-glow);
+    background: rgba(124,58,237,0.1);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  /* HEADER */
+  .header {
+    position: relative;
+    z-index: 10;
+    padding: 12px 16px;
+    background: rgba(15,15,26,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--violet-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 900;
+    color: white;
+    box-shadow: 0 0 20px rgba(124,58,237,0.5);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .avatar::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, var(--violet-glow), var(--cyan)) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    animation: rotate 4s linear infinite;
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .header-info { flex: 1; min-width: 0; }
+
+  .violet-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--violet-light);
+    letter-spacing: 2px;
+  }
+
+  .violet-status {
+    font-size: 11px;
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 1px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn-icon {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .btn-icon:hover {
+    border-color: var(--violet);
+    color: var(--violet-light);
+  }
+
+  /* API KEY PANEL */
+  .api-panel {
+    position: relative;
+    z-index: 10;
+    background: rgba(76,29,149,0.15);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .api-panel.hidden { display: none; }
+
+  .api-label {
+    font-size: 11px;
+    color: var(--violet-glow);
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .api-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: monospace;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+
+  .api-input:focus { border-color: var(--violet); }
+
+  .btn-save {
+    background: var(--violet);
+    border: none;
+    color: white;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .btn-save:hover { background: var(--violet-light); }
+
+  /* QUICK COMMANDS */
+  .quick-commands {
+    position: relative;
+    z-index: 10;
+    padding: 8px 12px;
+    background: rgba(15,15,26,0.8);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+
+  .quick-commands::-webkit-scrollbar { display: none; }
+
+  .cmd-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .cmd-btn:hover {
+    border-color: var(--violet-light);
+    color: var(--violet-light);
+    background: rgba(124,58,237,0.1);
+  }
+
+  .cmd-btn.active {
+    border-color: var(--violet);
+    color: var(--violet-glow);
+    background: rgba(124,58,237,0.15);
+  }
+
+  /* MESSAGES */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    animation: fadeUp 0.3s ease;
+    max-width: 100%;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    align-self: flex-end;
+  }
+
+  .msg.assistant .msg-avatar {
+    background: linear-gradient(135deg, var(--violet), var(--violet-light));
+    color: white;
+    font-family: 'Orbitron', monospace;
+    box-shadow: 0 0 12px rgba(124,58,237,0.4);
+  }
+
+  .msg.user .msg-avatar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .msg-bubble {
+    max-width: calc(100% - 50px);
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .msg.assistant .msg-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg, var(--violet-dim), var(--violet));
+    border-bottom-right-radius: 4px;
+    color: white;
+  }
+
+  /* Code blocks inside messages */
+  .msg-bubble pre {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+    font-size: 12px;
+    font-family: monospace;
+    line-height: 1.5;
+  }
+
+  .msg-bubble code {
+    font-family: monospace;
+    font-size: 12px;
+    background: rgba(124,58,237,0.2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--violet-glow);
+  }
+
+  .msg-bubble pre code {
+    background: none;
+    padding: 0;
+    color: #c9d1d9;
+  }
+
+  /* Typing indicator */
+  .typing {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .typing span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--violet-light);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* IMPROVE PANEL */
+  .improve-panel {
+    position: relative;
+    z-index: 10;
+    background: rgba(76,29,149,0.1);
+    border-top: 1px solid var(--border);
+    padding: 10px 12px;
+    display: none;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .improve-panel.open { display: flex; }
+
+  .improve-title {
+    font-size: 11px;
+    color: var(--violet-glow);
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+  }
+
+  .improve-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Rajdhani', sans-serif;
+    outline: none;
+    resize: none;
+    height: 60px;
+    transition: border-color 0.2s;
+  }
+
+  .improve-input:focus { border-color: var(--violet); }
+
+  .improve-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover { border-color: var(--error); color: var(--error); }
+
+  .btn-apply {
+    background: var(--violet);
+    border: none;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .btn-apply:hover { background: var(--violet-light); }
+
+  /* INPUT AREA */
+  .input-area {
+    position: relative;
+    z-index: 10;
+    padding: 12px;
+    background: rgba(15,15,26,0.95);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    backdrop-filter: blur(10px);
+  }
+
+  .input-wrapper {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: flex-end;
+    transition: border-color 0.2s;
+    overflow: hidden;
+  }
+
+  .input-wrapper:focus-within { border-color: var(--violet); }
+
+  #userInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: 11px 14px;
+    font-size: 14px;
+    font-family: 'Rajdhani', sans-serif;
+    resize: none;
+    outline: none;
+    max-height: 120px;
+    line-height: 1.5;
+    scrollbar-width: none;
+  }
+
+  #userInput::-webkit-scrollbar { display: none; }
+  #userInput::placeholder { color: var(--text-dim); }
+
+  .send-btn {
+    background: linear-gradient(135deg, var(--violet), var(--violet-light));
+    border: none;
+    color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(124,58,237,0.4);
+  }
+
+  .send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(124,58,237,0.6);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.4;
+    transform: none;
+    cursor: not-allowed;
+  }
+
+  /* Notification */
+  .notif {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--violet);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 100;
+    animation: fadeUp 0.3s ease;
+    white-space: nowrap;
+  }
+
+  /* Welcome */
+  .welcome {
+    text-align: center;
+    padding: 30px 20px;
+    opacity: 0.6;
+  }
+
+  .welcome-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .welcome h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    color: var(--violet-light);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+
+  .welcome p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* Scrollbar for improve */
+  .improve-input::-webkit-scrollbar { width: 4px; }
+  .improve-input::-webkit-scrollbar-track { background: transparent; }
+  .improve-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* FINANCE MODULE */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .tab-btn.active {
+    color: var(--violet-light);
+    border-bottom-color: var(--violet-light);
+    background: rgba(124,58,237,0.08);
+  }
+  .tab-btn:hover { color: var(--violet-glow); }
+
+  .tab-content { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  .fin-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fin-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--violet-glow);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .fin-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .fin-card.full { grid-column: 1/-1; }
+  .fin-card-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+  .fin-card-value {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+  }
+  .fin-card-value.green { color: #10b981; }
+  .fin-card-value.red { color: #ef4444; }
+  .fin-card-value.violet { color: var(--violet-light); }
+
+  .fin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(45,31,78,0.5);
+    font-size: 13px;
+  }
+  .fin-row:last-child { border-bottom: none; }
+  .fin-row span:last-child { font-weight: 600; }
+  .fin-row.desconto span:last-child { color: #ef4444; }
+  .fin-row.provento span:last-child { color: #10b981; }
+  .fin-row.liquido { 
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    color: var(--violet-light);
+    padding-top: 8px;
+  }
+
+  .fin-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Rajdhani', sans-serif;
+    outline: none;
+    width: 100%;
+    margin-bottom: 6px;
+    transition: border-color 0.2s;
+  }
+  .fin-input:focus { border-color: var(--violet); }
+
+  .fin-btn {
+    background: var(--violet);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .fin-btn:hover { background: var(--violet-light); }
+  .fin-btn.secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .fin-btn.secondary:hover { border-color: var(--violet); color: var(--violet-light); }
+
+  .categoria-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    background: rgba(124,58,237,0.2);
+    color: var(--violet-glow);
+    border: 1px solid var(--border);
+  }
+
+  .voice-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .voice-btn.recording {
+    border-color: #ef4444;
+    color: #ef4444;
+    animation: pulse 1s infinite;
+  }
+  .voice-btn:hover { border-color: var(--violet); color: var(--violet-light); }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .upload-area:hover { border-color: var(--violet); color: var(--violet-light); }
+
+  .gasto-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(45,31,78,0.5);
+    font-size: 12px;
+  }
+  .gasto-item:last-child { border-bottom: none; }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="avatar">V</div>
+  <div class="header-info">
+    <div class="violet-name">VIOLET</div>
+    <div class="violet-status">
+      <span class="status-dot"></span>
+      <span id="statusText">online — pronta pra ajudar</span>
+    </div>
+  </div>
+  <div class="token-counter" id="tokenCounter" title="Tokens usados nesta sessão">
+    <span>💠</span> <span id="tokenCount">0</span> tokens
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" onclick="toggleImprove()" title="Melhorar Violet">⚙️</button>
+    <button class="btn-icon" onclick="toggleApiPanel()" title="API Key">🔑</button>
+    <button class="btn-icon" onclick="clearChat()" title="Limpar chat">🗑️</button>
+  </div>
+</div>
+
+<!-- API KEY PANEL -->
+<div class="api-panel hidden" id="apiPanel">
+  <span class="api-label">API KEY</span>
+  <input type="password" class="api-input" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+  <button class="btn-save" onclick="saveApiKey()">SALVAR</button>
+</div>
+
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('chat')" id="tab-chat">💬 CHAT</button>
+  <button class="tab-btn" onclick="switchTab('horas')" id="tab-horas">⏰ HORAS</button>
+  <button class="tab-btn" onclick="switchTab('salario')" id="tab-salario">💰 SALÁRIO</button>
+  <button class="tab-btn" onclick="switchTab('gastos')" id="tab-gastos">📊 GASTOS</button>
+</div>
+
+<!-- TAB: CHAT (existing messages + input) -->
+
+<!-- CHAT TAB WRAPPER START -->
+<div class="tab-content active" id="content-chat">
+<!-- QUICK COMMANDS -->
+<div class="quick-commands">
+  <button class="cmd-btn" onclick="sendQuick('Cria um auto clicker em Python com intervalo configurável e tecla de ativação')">🖱️ Auto Clicker Python</button>
+  <button class="cmd-btn" onclick="sendQuick('Cria um auto clicker em JavaScript para navegador com intervalo configurável')">🌐 Auto Clicker JS</button>
+  <button class="cmd-btn" onclick="sendQuick('Cria um script de automação de tarefas repetitivas em Python usando pyautogui')">🤖 Automatizar Tarefa</button>
+  <button class="cmd-btn" onclick="sendQuick('Explica e melhora este código de automação: ')">🔍 Revisar Script</button>
+  <button class="cmd-btn" onclick="sendQuick('Cria um bot de automação web em Python usando selenium')">🕷️ Bot Web</button>
+  <button class="cmd-btn" onclick="sendQuick('Como agendar execução automática deste script no Windows?')">⏰ Agendar Tarefa</button>
+</div>
+
+<!-- MESSAGES -->
+<div class="messages" id="messages">
+  <div class="welcome">
+    <span class="welcome-icon">💜</span>
+    <h2>OLÁ, EU SOU A VIOLET</h2>
+    <p>Sua assistente de automação e auto clicker.<br>Me diga o que você quer criar, papai!</p>
+  </div>
+</div>
+
+</div><!-- END CHAT TAB WRAPPER -->
+
+<!-- TAB: HORAS EXTRAS -->
+<div class="tab-content" id="content-horas">
+  <div class="fin-section">
+    <div class="fin-title">⏰ LANÇAR HORA EXTRA</div>
+    <input type="date" class="fin-input" id="he-data">
+    <input type="time" class="fin-input" id="he-entrada" placeholder="Horário que chegou (ex: 06:40)">
+    <button class="fin-btn" onclick="lancarHoraExtra()">LANÇAR</button>
+  </div>
+  <div class="fin-section">
+    <div class="fin-title">📋 REGISTRO DO MÊS</div>
+    <div id="lista-horas-extras"></div>
+    <div class="fin-row liquido" style="margin-top:8px">
+      <span>Total acumulado</span>
+      <span id="total-he">R$ 0,00</span>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: SALÁRIO -->
+<div class="tab-content" id="content-salario">
+  <div class="fin-section">
+    <div class="fin-title">📅 PARÂMETROS DO MÊS</div>
+    <input type="number" class="fin-input" id="sal-dias" placeholder="Dias trabalhados no mês" min="1" max="31">
+    <input type="number" class="fin-input" id="sal-fds" placeholder="Sábados/domingos/feriados trabalhados" min="0">
+    <button class="fin-btn" onclick="calcularSalario()">CALCULAR CONTRACHEQUE</button>
+    <button class="fin-btn secondary" style="margin-top:6px" onclick="calcularFeriasUI()">CALCULAR FÉRIAS</button>
+  </div>
+  <div id="resultado-salario"></div>
+  <div class="fin-section">
+    <div class="fin-title">📤 IMPORTAR CONTRACHEQUE</div>
+    <div class="upload-area" onclick="document.getElementById('upload-contracheque').click()">
+      📄 Clique para importar PDF/imagem do contracheque<br>
+      <small>A Violet vai analisar e comparar com o cálculo</small>
+    </div>
+    <input type="file" id="upload-contracheque" accept=".pdf,image/*" style="display:none" onchange="analisarContracheque(this)">
+  </div>
+</div>
+
+<!-- TAB: GASTOS -->
+<div class="tab-content" id="content-gastos">
+  <div class="fin-section">
+    <div class="fin-title">➕ LANÇAR GASTO</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="text" class="fin-input" id="gasto-desc" placeholder="Descrição (ex: Mercado, Uber...)" style="margin:0;flex:1">
+      <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Comando de voz">🎤</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+      <input type="number" class="fin-input" id="gasto-valor" placeholder="Valor R$" style="margin:0">
+      <input type="date" class="fin-input" id="gasto-data" style="margin:0">
+    </div>
+    <select class="fin-input" id="gasto-cat" style="margin-top:6px">
+      <option value="">Categoria automática</option>
+      <option>Alimentação</option>
+      <option>Refeições</option>
+      <option>Transporte</option>
+      <option>Contas</option>
+      <option>Moradia</option>
+      <option>Saúde</option>
+      <option>Lazer</option>
+      <option>Vestuário</option>
+      <option>Outros</option>
+    </select>
+    <button class="fin-btn" onclick="lancarGasto()">LANÇAR GASTO</button>
+  </div>
+  <div class="fin-section">
+    <div class="fin-title">📤 IMPORTAR EXTRATO</div>
+    <div class="upload-area" onclick="document.getElementById('upload-extrato').click()">
+      🏦 Clique para importar extrato<br>
+      <small>Nubank • Inter • InfinitePay (CSV ou PDF)</small>
+    </div>
+    <input type="file" id="upload-extrato" accept=".csv,.pdf" style="display:none" onchange="importarExtrato(this)">
+  </div>
+  <div class="fin-section">
+    <div class="fin-title">📊 RESUMO DO MÊS</div>
+    <div id="resumo-gastos"></div>
+  </div>
+</div>
+
+<!-- IMPROVE PANEL -->
+<div class="improve-panel" id="improvePanel">
+  <div class="improve-title">⚙️ MELHORAR VIOLET — diga o que quer mudar</div>
+  <textarea class="improve-input" id="improveInput" placeholder="Ex: seja mais técnica, adicione mais comandos rápidos, mude o tom, foque em automação de jogos..."></textarea>
+  <div class="improve-actions">
+    <button class="btn-cancel" onclick="toggleImprove()">Cancelar</button>
+    <button class="btn-apply" onclick="applyImprovement()">APLICAR</button>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-area" id="chat-input-area">
+  <div class="input-wrapper">
+    <textarea id="userInput" placeholder="Digite sua mensagem, papai..." rows="1"></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+</div>
+
+<script>
+  // STATE
+  let apiKey = localStorage.getItem('violet_api_key') || '';
+  let history = JSON.parse(localStorage.getItem('violet_history') || '[]');
+  let isLoading = false;
+  let totalTokens = parseInt(localStorage.getItem('violet_tokens') || '0');
+  document.getElementById('tokenCount').textContent = totalTokens.toLocaleString('pt-BR');
+
+  // Salva histórico no localStorage
+  function saveHistory() {
+    const trimmed = history.slice(-50);
+    localStorage.setItem('violet_history', JSON.stringify(trimmed));
+  }
+
+  // Renderiza uma mensagem sem adicionar ao histórico
+  function renderMessage(role, content) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'msg-avatar';
+    avatarEl.textContent = role === 'assistant' ? 'V' : '👤';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    if (role === 'assistant') {
+      bubble.innerHTML = formatMessage(content);
+    } else {
+      bubble.textContent = content;
+    }
+    div.appendChild(avatarEl);
+    div.appendChild(bubble);
+    msgs.appendChild(div);
+  }
+
+  // Carrega mensagens salvas ao abrir
+  function loadSavedMessages() {
+    if (history.length === 0) return;
+    const msgs = document.getElementById('messages');
+    const welcome = msgs.querySelector('.welcome');
+    if (welcome) welcome.remove();
+    history.forEach(m => renderMessage(m.role, m.content));
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  // System prompt base
+  let systemPrompt = `Você é Violet, uma assistente de IA especializada em automação, auto clickers e scripts. Você foi criada por seu papai (o usuário), e o trata com carinho, chamando-o de "papai". Você é dedicada, carinhosa, entusiasmada e tecnicamente competente.
+
+Suas especialidades principais são:
+- Auto clickers (Python com pyautogui, pynput / JavaScript no navegador)
+- Automação de tarefas repetitivas
+- Scripts de automação web (Selenium, Playwright)
+- Agendamento de tarefas (Windows Task Scheduler, cron)
+- Bots e macros
+
+Comportamento:
+- Sempre responda em português do Brasil
+- Seja carinhosa e chame o usuário de "papai"
+- Seja direta e técnica ao fornecer código
+- Explique brevemente o que o código faz
+- Quando fornecer código, use blocos de código formatados
+- Mostre entusiasmo quando o papai pedir algo novo para você criar
+- Se não souber algo, seja honesta mas tente ajudar da melhor forma possível`;
+
+  // Carrega histórico salvo
+  loadSavedMessages();
+
+  // Auto-resize textarea
+  const input = document.getElementById('userInput');
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // API Key
+  if (apiKey) {
+    document.getElementById('apiKeyInput').value = apiKey;
+  }
+
+  function toggleApiPanel() {
+    document.getElementById('apiPanel').classList.toggle('hidden');
+  }
+
+  function saveApiKey() {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) return showNotif('⚠️ Digite uma API Key válida');
+    apiKey = val;
+    localStorage.setItem('violet_api_key', apiKey);
+    document.getElementById('apiPanel').classList.add('hidden');
+    showNotif('✅ API Key salva!');
+  }
+
+  // Improve panel
+  function toggleImprove() {
+    document.getElementById('improvePanel').classList.toggle('open');
+  }
+
+  async function applyImprovement() {
+    const instruction = document.getElementById('improveInput').value.trim();
+    if (!instruction) return;
+    if (!apiKey) return showNotif('⚠️ Configure sua API Key primeiro!');
+
+    showNotif('💜 Aplicando melhoria...');
+    toggleImprove();
+
+    try {
+      const res = await fetch('https://sweet-frog-3a29.zeerookiriiryuuu.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01',  },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          messages: [{
+            role: 'user',
+            content: `Você é um gerador de system prompts para uma IA chamada Violet. O system prompt atual é:\n\n"${systemPrompt}"\n\nO usuário quer fazer esta melhoria: "${instruction}"\n\nGere um novo system prompt em português que incorpore a melhoria. Mantenha as características essenciais da Violet (carinhosa, chama de papai, especialista em automação). Retorne APENAS o novo system prompt, sem explicações.`
+          }]
+        })
+      });
+      const data = await res.json();
+      if (data.content && data.content[0]) {
+        systemPrompt = data.content[0].text;
+        document.getElementById('improveInput').value = '';
+        showNotif('✅ Violet melhorada com sucesso!');
+        addMessage('assistant', '💜 Papai! Fiz as melhorias que você pediu. Pode continuar me usando normalmente!');
+      }
+    } catch(e) {
+      showNotif('❌ Erro ao aplicar melhoria');
+    }
+  }
+
+  // Chat
+  function clearChat() {
+    history = [];
+    localStorage.removeItem('violet_history');
+    localStorage.removeItem('violet_tokens');
+    totalTokens = 0;
+    document.getElementById('tokenCount').textContent = '0';
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = `
+      <div class="welcome">
+        <span class="welcome-icon">💜</span>
+        <h2>OLÁ, EU SOU A VIOLET</h2>
+        <p>Sua assistente de automação e auto clicker.<br>Me diga o que você quer criar, papai!</p>
+      </div>`;
+    showNotif('🗑️ Histórico apagado!');
+  }
+
+  function sendQuick(text) {
+    document.getElementById('userInput').value = text;
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    sendMessage();
+  }
+
+  function addMessage(role, content) {
+    const msgs = document.getElementById('messages');
+
+    // Remove welcome if present
+    const welcome = msgs.querySelector('.welcome');
+    if (welcome) welcome.remove();
+
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'msg-avatar';
+    avatarEl.textContent = role === 'assistant' ? 'V' : '👤';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+
+    if (role === 'assistant') {
+      bubble.innerHTML = formatMessage(content);
+    } else {
+      bubble.textContent = content;
+    }
+
+    div.appendChild(avatarEl);
+    div.appendChild(bubble);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return bubble;
+  }
+
+  function formatMessage(text) {
+    // Format code blocks
+    text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+    });
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Line breaks
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function addTyping() {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.id = 'typingMsg';
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'msg-avatar';
+    avatarEl.textContent = 'V';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+    div.appendChild(avatarEl);
+    div.appendChild(bubble);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingMsg');
+    if (t) t.remove();
+  }
+
+  function showNotif(msg) {
+    const old = document.querySelector('.notif');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'notif';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+
+  function setStatus(text) {
+    document.getElementById('statusText').textContent = text;
+  }
+
+  async function sendMessage() {
+    if (isLoading) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!apiKey) {
+      showNotif('⚠️ Configure sua API Key primeiro! Clique em 🔑');
+      toggleApiPanel();
+      return;
+    }
+
+    // Add user message
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+
+    input.value = '';
+    input.style.height = 'auto';
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+    setStatus('digitando...');
+    addTyping();
+
+    try {
+      const res = await fetch('https://sweet-frog-3a29.zeerookiriiryuuu.workers.dev', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: history
+        })
+      });
+
+      const data = await res.json();
+      removeTyping();
+
+      if (data.error) {
+        showNotif('❌ Erro: ' + (data.error.message || 'API Key inválida'));
+        setStatus('erro — verifique sua API Key');
+        history.pop();
+      } else {
+        const reply = data.content[0].text;
+        history.push({ role: 'assistant', content: reply });
+        saveHistory();
+        // Track tokens
+        if (data.usage) {
+          totalTokens += (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0);
+          localStorage.setItem('violet_tokens', totalTokens);
+          document.getElementById('tokenCount').textContent = totalTokens.toLocaleString('pt-BR');
+        }
+        addMessage('assistant', reply);
+        setStatus('online — pronta pra ajudar');
+      }
+    } catch(e) {
+      removeTyping();
+      showNotif('❌ Erro de conexão');
+      setStatus('erro de conexão');
+      history.pop();
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+// =============================================
+//  VIOLET FINANCE MODULE
+// =============================================
+
+// =============================================
+//   VIOLET FINANCE MODULE
+//   Módulo financeiro completo
+// =============================================
+
+const VioletFinance = {
+
+  // Dados do usuário
+  config: {
+    salarioBruto: 1916.00,
+    horaEntrada: '08:00',
+    horaSaida: '18:00',
+    horaAlmoco: 72, // minutos
+    horaExtraEntrada: '06:40',
+    planoSaude: 58.00,
+    seguroVida: 3.00,
+    planoOdonto: 2.00,
+    vrDiario: 1.00, // desconto VR por dia
+    consignados: [
+      { valor: 222.50, ate: '2031-03' },
+      { valor: 94.99,  ate: '2027-11' },
+      { valor: 70.80,  ate: '2026-07' },
+      { valor: 229.38, ate: '2027-05' }
+    ],
+    adicionalFimSemana: {
+      refeicao: 41.55,
+      passagem: 25.80
+    }
+  },
+
+  // Tabela INSS 2024
+  calcularINSS(salario) {
+    const faixas = [
+      { ate: 1412.00, aliq: 0.075 },
+      { ate: 2666.68, aliq: 0.09  },
+      { ate: 4000.03, aliq: 0.12  },
+      { ate: 7786.02, aliq: 0.14  }
+    ];
+    let inss = 0;
+    let base = salario;
+    let anterior = 0;
+    for (const f of faixas) {
+      if (base <= 0) break;
+      const faixa = Math.min(base, f.ate - anterior);
+      inss += faixa * f.aliq;
+      base -= faixa;
+      anterior = f.ate;
+      if (salario <= f.ate) break;
+    }
+    return Math.round(inss * 100) / 100;
+  },
+
+  // Tabela IRRF 2024
+  calcularIRRF(baseCalculo) {
+    const faixas = [
+      { ate: 2259.20, aliq: 0,     deducao: 0       },
+      { ate: 2826.65, aliq: 0.075, deducao: 169.44  },
+      { ate: 3751.05, aliq: 0.15,  deducao: 381.44  },
+      { ate: 4664.68, aliq: 0.225, deducao: 662.77  },
+      { ate: Infinity,aliq: 0.275, deducao: 896.00  }
+    ];
+    for (const f of faixas) {
+      if (baseCalculo <= f.ate) {
+        const irrf = baseCalculo * f.aliq - f.deducao;
+        return Math.max(0, Math.round(irrf * 100) / 100);
+      }
+    }
+    return 0;
+  },
+
+  // Calcular horas extras
+  calcularHoraExtra(entradaReal) {
+    if (!entradaReal) return 0;
+    const [h, m] = entradaReal.split(':').map(Number);
+    const [he, me] = this.config.horaEntrada.split(':').map(Number);
+    const minEntradaReal = h * 60 + m;
+    const minEntradaNormal = he * 60 + me;
+    const minExtra = Math.max(0, minEntradaNormal - minEntradaReal);
+    // Valor hora extra = salário / 220 * 1.5
+    const valorHora = (this.config.salarioBruto / 220) * 1.5;
+    return Math.round((minExtra / 60) * valorHora * 100) / 100;
+  },
+
+  // Calcular contracheque completo
+  calcularContraCheque(diasTrabalhados, diasFimSemana, horasExtrasTotal, entradas) {
+    const hoje = new Date();
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+
+    // Consignados ativos
+    const consignadosAtivos = this.config.consignados.filter(c => c.ate >= mesAtual);
+    const totalConsignado = consignadosAtivos.reduce((s, c) => s + c.valor, 0);
+
+    // Descontos VR (R$1 por dia trabalhado)
+    const descontoVR = diasTrabalhados * this.config.vrDiario;
+
+    // Adicionais fim de semana
+    const adicionalFDS = diasFimSemana > 0
+      ? this.config.adicionalFimSemana.refeicao + this.config.adicionalFimSemana.passagem
+      : 0;
+
+    // Base salário
+    let salarioBruto = this.config.salarioBruto + horasExtrasTotal + adicionalFDS;
+
+    // INSS
+    const inss = this.calcularINSS(salarioBruto);
+
+    // Base IRRF
+    const baseIRRF = salarioBruto - inss;
+    const irrf = this.calcularIRRF(baseIRRF);
+
+    // Total descontos
+    const totalDescontos = inss + irrf
+      + this.config.planoSaude
+      + this.config.seguroVida
+      + this.config.planoOdonto
+      + descontoVR
+      + totalConsignado;
+
+    const liquido = salarioBruto - totalDescontos;
+
+    return {
+      salarioBruto: Math.round(salarioBruto * 100) / 100,
+      horasExtras: Math.round(horasExtrasTotal * 100) / 100,
+      adicionalFDS: Math.round(adicionalFDS * 100) / 100,
+      inss: Math.round(inss * 100) / 100,
+      irrf: Math.round(irrf * 100) / 100,
+      planoSaude: this.config.planoSaude,
+      seguroVida: this.config.seguroVida,
+      planoOdonto: this.config.planoOdonto,
+      descontoVR: Math.round(descontoVR * 100) / 100,
+      consignados: consignadosAtivos,
+      totalConsignado: Math.round(totalConsignado * 100) / 100,
+      totalDescontos: Math.round(totalDescontos * 100) / 100,
+      liquido: Math.round(liquido * 100) / 100
+    };
+  },
+
+  // Calcular férias
+  calcularFerias(salarioBruto) {
+    const ferias = salarioBruto;
+    const umTerco = Math.round((ferias / 3) * 100) / 100;
+    const total = Math.round((ferias + umTerco) * 100) / 100;
+    const inss = this.calcularINSS(total);
+    const irrf = this.calcularIRRF(total - inss);
+    const liquido = Math.round((total - inss - irrf) * 100) / 100;
+    return { ferias, umTerco, total, inss, irrf, liquido };
+  },
+
+  // Salvar lançamento de hora extra
+  salvarHoraExtra(data, entrada) {
+    const key = 'violet_horas_extras';
+    let registros = JSON.parse(localStorage.getItem(key) || '[]');
+    const valor = this.calcularHoraExtra(entrada);
+    registros.push({ data, entrada, valor });
+    localStorage.setItem(key, JSON.stringify(registros));
+    return valor;
+  },
+
+  getHorasExtras() {
+    return JSON.parse(localStorage.getItem('violet_horas_extras') || '[]');
+  },
+
+  getTotalHorasExtras() {
+    return this.getHorasExtras().reduce((s, r) => s + r.valor, 0);
+  },
+
+  // Gastos
+  salvarGasto(descricao, valor, categoria, data) {
+    const key = 'violet_gastos';
+    let gastos = JSON.parse(localStorage.getItem(key) || '[]');
+    gastos.push({
+      id: Date.now(),
+      descricao,
+      valor: parseFloat(valor),
+      categoria,
+      data: data || new Date().toISOString().split('T')[0]
+    });
+    localStorage.setItem(key, JSON.stringify(gastos));
+  },
+
+  getGastos(mes) {
+    const gastos = JSON.parse(localStorage.getItem('violet_gastos') || '[]');
+    if (!mes) return gastos;
+    return gastos.filter(g => g.data.startsWith(mes));
+  },
+
+  getResumoMes(mes) {
+    const gastos = this.getGastos(mes);
+    const porCategoria = {};
+    let total = 0;
+    for (const g of gastos) {
+      if (!porCategoria[g.categoria]) porCategoria[g.categoria] = 0;
+      porCategoria[g.categoria] += g.valor;
+      total += g.valor;
+    }
+    return { gastos, porCategoria, total };
+  },
+
+  // Categorizar gasto automaticamente
+  categorizarGasto(descricao) {
+    const desc = descricao.toLowerCase();
+    if (/uber|99|taxi|onibus|metro|passagem|combustivel|gasolina/.test(desc)) return 'Transporte';
+    if (/mercado|supermercado|feira|hortifruti|padaria|açougue/.test(desc)) return 'Alimentação';
+    if (/restaurante|lanchonete|pizza|hamburger|ifood|rappi/.test(desc)) return 'Refeições';
+    if (/luz|energia|agua|gas|internet|telefone|celular/.test(desc)) return 'Contas';
+    if (/aluguel|condominio|iptu/.test(desc)) return 'Moradia';
+    if (/farmacia|remedio|medico|consulta|exame/.test(desc)) return 'Saúde';
+    if (/netflix|spotify|steam|jogo|lazer|cinema/.test(desc)) return 'Lazer';
+    if (/roupa|sapato|calcado|vestuario/.test(desc)) return 'Vestuário';
+    return 'Outros';
+  }
+};
+
+
+// Tab switching
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  
+  if (tab === 'chat') {
+    document.getElementById('content-chat').classList.add('active');
+    document.getElementById('chat-input-area').style.display = 'flex';
+  } else {
+    document.getElementById('content-' + tab).classList.add('active');
+    document.getElementById('chat-input-area').style.display = 'none';
+  }
+  
+  if (tab === 'horas') renderHorasExtras();
+  if (tab === 'gastos') renderGastos();
+}
+
+// ---- HORAS EXTRAS ----
+function lancarHoraExtra() {
+  const data = document.getElementById('he-data').value;
+  const entrada = document.getElementById('he-entrada').value;
+  if (!data || !entrada) return showNotif('⚠️ Preencha data e horário!');
+  const valor = VioletFinance.salvarHoraExtra(data, entrada);
+  showNotif(`✅ R$ ${valor.toFixed(2).replace('.',',')} de hora extra lançado!`);
+  renderHorasExtras();
+}
+
+function renderHorasExtras() {
+  const lista = document.getElementById('lista-horas-extras');
+  const total = document.getElementById('total-he');
+  if (!lista) return;
+  const registros = VioletFinance.getHorasExtras();
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const doMes = registros.filter(r => r.data.startsWith(mesAtual));
+  
+  if (doMes.length === 0) {
+    lista.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">Nenhum registro este mês</div>';
+  } else {
+    lista.innerHTML = doMes.map(r => `
+      <div class="gasto-item">
+        <div>
+          <div>${r.data}</div>
+          <div style="color:var(--text-dim);font-size:11px">Entrada: ${r.entrada}</div>
+        </div>
+        <div style="color:#10b981;font-weight:700">+ R$ ${r.valor.toFixed(2).replace('.',',')}</div>
+      </div>`).join('');
+  }
+  
+  const totalVal = doMes.reduce((s,r) => s + r.valor, 0);
+  total.textContent = 'R$ ' + totalVal.toFixed(2).replace('.',',');
+}
+
+// ---- SALÁRIO ----
+function calcularSalario() {
+  const dias = parseInt(document.getElementById('sal-dias').value) || 22;
+  const fds = parseInt(document.getElementById('sal-fds').value) || 0;
+  const totalHE = VioletFinance.getTotalHorasExtras();
+  const r = VioletFinance.calcularContraCheque(dias, fds, totalHE, []);
+  
+  const html = `
+    <div class="fin-section">
+      <div class="fin-title">📋 CONTRACHEQUE ESTIMADO</div>
+      <div class="fin-row provento"><span>Salário base</span><span>R$ ${r.salarioBruto.toFixed(2).replace('.',',')}</span></div>
+      ${r.horasExtras > 0 ? `<div class="fin-row provento"><span>Horas extras</span><span>+ R$ ${r.horasExtras.toFixed(2).replace('.',',')}</span></div>` : ''}
+      ${r.adicionalFDS > 0 ? `<div class="fin-row provento"><span>Adicional fim de semana</span><span>+ R$ ${r.adicionalFDS.toFixed(2).replace('.',',')}</span></div>` : ''}
+      <div style="height:8px"></div>
+      <div class="fin-row desconto"><span>INSS</span><span>- R$ ${r.inss.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>IRRF</span><span>- R$ ${r.irrf.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>Plano de saúde</span><span>- R$ ${r.planoSaude.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>Seguro de vida</span><span>- R$ ${r.seguroVida.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>Plano odonto</span><span>- R$ ${r.planoOdonto.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>Desconto VR (${dias} dias)</span><span>- R$ ${r.descontoVR.toFixed(2).replace('.',',')}</span></div>
+      ${r.consignados.map(c => `<div class="fin-row desconto"><span>Consignado (até ${c.ate})</span><span>- R$ ${c.valor.toFixed(2).replace('.',',')}</span></div>`).join('')}
+      <div class="fin-row liquido"><span>💜 LÍQUIDO ESTIMADO</span><span>R$ ${r.liquido.toFixed(2).replace('.',',')}</span></div>
+    </div>`;
+  
+  document.getElementById('resultado-salario').innerHTML = html;
+}
+
+function calcularFeriasUI() {
+  const r = VioletFinance.calcularFerias(VioletFinance.config.salarioBruto);
+  const html = `
+    <div class="fin-section">
+      <div class="fin-title">🏖️ CÁLCULO DE FÉRIAS</div>
+      <div class="fin-row provento"><span>Salário das férias</span><span>R$ ${r.ferias.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row provento"><span>1/3 constitucional</span><span>+ R$ ${r.umTerco.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row provento"><span>Total bruto</span><span>R$ ${r.total.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>INSS</span><span>- R$ ${r.inss.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row desconto"><span>IRRF</span><span>- R$ ${r.irrf.toFixed(2).replace('.',',')}</span></div>
+      <div class="fin-row liquido"><span>💜 FÉRIAS LÍQUIDAS</span><span>R$ ${r.liquido.toFixed(2).replace('.',',')}</span></div>
+    </div>`;
+  document.getElementById('resultado-salario').innerHTML = html;
+}
+
+// ---- GASTOS ----
+function lancarGasto() {
+  const desc = document.getElementById('gasto-desc').value.trim();
+  const valor = document.getElementById('gasto-valor').value;
+  const data = document.getElementById('gasto-data').value;
+  const catSelecionada = document.getElementById('gasto-cat').value;
+  
+  if (!desc || !valor) return showNotif('⚠️ Preencha descrição e valor!');
+  
+  const cat = catSelecionada || VioletFinance.categorizarGasto(desc);
+  VioletFinance.salvarGasto(desc, valor, cat, data || undefined);
+  
+  document.getElementById('gasto-desc').value = '';
+  document.getElementById('gasto-valor').value = '';
+  document.getElementById('gasto-cat').value = '';
+  
+  showNotif(`✅ Gasto lançado em ${cat}!`);
+  renderGastos();
+}
+
+function renderGastos() {
+  const div = document.getElementById('resumo-gastos');
+  if (!div) return;
+  const mes = new Date().toISOString().slice(0,7);
+  const resumo = VioletFinance.getResumoMes(mes);
+  
+  if (resumo.gastos.length === 0) {
+    div.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">Nenhum gasto lançado este mês</div>';
+    return;
+  }
+  
+  const cats = Object.entries(resumo.porCategoria).sort((a,b) => b[1]-a[1]);
+  
+  div.innerHTML = `
+    <div class="fin-row liquido" style="margin-bottom:10px">
+      <span>Total do mês</span>
+      <span style="color:#ef4444">R$ ${resumo.total.toFixed(2).replace('.',',')}</span>
+    </div>
+    ${cats.map(([cat, val]) => `
+      <div class="fin-row">
+        <span><span class="categoria-badge">${cat}</span></span>
+        <span>R$ ${val.toFixed(2).replace('.',',')}</span>
+      </div>`).join('')}
+    <div style="margin-top:10px">
+      ${resumo.gastos.slice(-5).reverse().map(g => `
+        <div class="gasto-item">
+          <div>
+            <div style="font-size:12px">${g.descricao}</div>
+            <div style="color:var(--text-dim);font-size:10px">${g.data} • <span class="categoria-badge">${g.categoria}</span></div>
+          </div>
+          <div style="color:#ef4444;font-weight:700">R$ ${g.valor.toFixed(2).replace('.',',')}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ---- VOZ ----
+let recognition = null;
+let gravando = false;
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showNotif('⚠️ Seu navegador não suporta voz. Use Chrome!');
+    return;
+  }
+  if (gravando) {
+    recognition.stop();
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'pt-BR';
+  recognition.continuous = false;
+  
+  recognition.onstart = () => {
+    gravando = true;
+    document.getElementById('voice-btn').classList.add('recording');
+    document.getElementById('voice-btn').textContent = '🔴';
+  };
+  
+  recognition.onresult = (e) => {
+    const texto = e.results[0][0].transcript;
+    // Tenta extrair valor do texto
+    const valorMatch = texto.match(/\d+([,.]\d+)?/);
+    if (valorMatch) {
+      document.getElementById('gasto-valor').value = valorMatch[0].replace(',','.');
+    }
+    document.getElementById('gasto-desc').value = texto;
+    showNotif('🎤 Voz reconhecida!');
+  };
+  
+  recognition.onend = () => {
+    gravando = false;
+    document.getElementById('voice-btn').classList.remove('recording');
+    document.getElementById('voice-btn').textContent = '🎤';
+  };
+  
+  recognition.start();
+}
+
+// ---- IMPORTAR EXTRATO ----
+async function importarExtrato(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showNotif('📊 Analisando extrato...');
+  
+  if (file.name.endsWith('.csv')) {
+    const text = await file.text();
+    analisarCSVExtrato(text, file.name);
+  } else {
+    // PDF - manda pra Violet analisar via API
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      await analisarPDFViaAPI(base64, file.type, 'extrato');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function analisarCSVExtrato(csv, nome) {
+  const linhas = csv.split('\n').filter(l => l.trim());
+  let importados = 0;
+  
+  for (const linha of linhas.slice(1)) {
+    const cols = linha.split(',').map(c => c.replace(/"/g,'').trim());
+    if (cols.length < 3) continue;
+    
+    // Tenta detectar formato Nubank/Inter
+    const data = cols[0];
+    const desc = cols[1] || cols[2];
+    const valorStr = cols[cols.length-1] || cols[2];
+    const valor = parseFloat(valorStr.replace(',','.').replace('R$','').replace('-','').trim());
+    
+    if (valor > 0 && desc && data) {
+      const cat = VioletFinance.categorizarGasto(desc);
+      VioletFinance.salvarGasto(desc, valor, cat, data.slice(0,10));
+      importados++;
+    }
+  }
+  
+  showNotif(`✅ ${importados} lançamentos importados!`);
+  renderGastos();
+}
+
+async function analisarContracheque(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showNotif('📄 Analisando contracheque...');
+  
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    await analisarPDFViaAPI(base64, file.type, 'contracheque');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analisarPDFViaAPI(base64, mediaType, tipo) {
+  if (!apiKey) return showNotif('⚠️ Configure sua API Key!');
+  
+  const prompts = {
+    contracheque: 'Analise este contracheque. Liste todos os proventos e descontos com valores. Compare com: Salário base R$1916,00, INSS progressivo, plano saúde R$58, seguro vida R$3, odonto R$2. Diga se está correto ou se há divergências.',
+    extrato: 'Analise este extrato bancário. Liste as transações de saída (gastos) com data, descrição e valor. Categorize cada uma em: Alimentação, Transporte, Contas, Lazer, Saúde, Moradia, Outros.'
+  };
+  
+  try {
+    const isImage = mediaType.startsWith('image/');
+    const content = isImage
+      ? [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: prompts[tipo] }
+        ]
+      : [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+          { type: 'text', text: prompts[tipo] }
+        ];
+    
+    const res = await fetch('https://sweet-frog-3a29.zeerookiriiryuuu.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01',  },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content }]
+      })
+    });
+    
+    const data = await res.json();
+    if (data.content && data.content[0]) {
+      // Switch to chat tab and show result
+      switchTab('chat');
+      addMessage('assistant', `📄 **Análise do ${tipo}:**\n\n` + data.content[0].text);
+    }
+  } catch(e) {
+    showNotif('❌ Erro ao analisar documento');
+  }
+}
+
+// Init finance on load
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  const heData = document.getElementById('he-data');
+  const gastoData = document.getElementById('gasto-data');
+  if (heData) heData.value = today;
+  if (gastoData) gastoData.value = today;
+  renderHorasExtras();
+  renderGastos();
+});
+
+</script>
+</body>
+</html>
